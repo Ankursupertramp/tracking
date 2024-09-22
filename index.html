@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolTrack - Solar Panel Tracking</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap">
+    <style>
+        :root {
+            --primary-color: #00796b;
+            --secondary-color: #004d40;
+            --accent-color: #4fc3f7;
+            --background-color: #ffffff;
+            --text-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(to bottom, #e0f7fa, #b2ebf2);
+            color: var(--text-color);
+            background-attachment: fixed;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: var(--background-color);
+            border-radius: 20px;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            transition: margin-left 0.3s;
+        }
+
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--primary-color);
+            font-size: 3rem;
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(79, 195, 247, 0.5);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .scene {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            border: 3px solid var(--primary-color);
+            border-radius: 20px;
+            background: linear-gradient(to bottom, #87ceeb, #e1f5fe);
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel {
+            width: 360px;
+            height: 10px;
+            background: linear-gradient(to bottom, #1a237e, #3f51b5);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transform-origin: center;
+            transition: transform 0.5s ease-in-out;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .angle-box {
+            position: absolute;
+            top: -19px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--background-color);
+            border: 2px solid var(--primary-color);
+            border-radius: 5px;
+            padding: 3px 6px;
+            font-size: 0.8rem;
+            color: var(--primary-color);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+
+        .support {
+            width: 6px;
+            height: 100%;
+            background-color: #78909c;
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .base {
+            width: 30%;
+            height: 25px;
+            background-color: #455a64;
+            position: absolute;
+            bottom: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 5px;
+        }
+
+        .ground {
+            width: 100%;
+            height: 40px;
+            background: linear-gradient(to bottom, #4caf50, #1b5e20);
+            position: absolute;
+            bottom: 0;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .sun {
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #ffd54f, #f57f17);
+            border-radius: 50%;
+            position: absolute;
+            top: 20px;
+            left: 0;
+            box-shadow: 0 0 30px rgba(255, 193, 7, 0.8);
+            transition: left 1s linear;
+        }
+
+        .cloud {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 40px;
+            animation: cloudMove 20s infinite linear;
+        }
+
+        .cloud1 {
+            width: 120px;
+            height: 40px;
+            top: 20px;
+            left: -120px;
+        }
+
+        .cloud2 {
+            width: 100px;
+            height: 35px;
+            top: 70px;
+            left: -100px;
+            animation-delay: -10s;
+        }
+
+        @keyframes cloudMove {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(calc(100% + 120px)); }
+        }
+
+        .time-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .controls {
+            margin-top: 6pc;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: space-between;
+        }
+
+        .control-group {
+            flex: 1 1 calc(50% - 15px);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1rem;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            background-color: var(--background-color);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        button {
+            padding: 12px 24px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            align-self: center;
+        }
+        button1 {
+            margin-left: 14pc;
+            padding: 12px 24px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-size: 1.2rem;
+            margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            align-self: center;
+        }
+
+        button1:hover {
+            background-color: var(--secondary-color);
+        }
+
+        button1:active {
+            transform: scale(0.95);
+        }
+
+        .value-display {
+            font-size: 1rem;
+            color: var(--secondary-color);
+            font-weight: bold;
+        }
+
+        .location-box {
+            background-color: #265781;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 95px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .location-text {
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .location-link {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .location-link:hover {
+            color: #81d4fa;
+        }
+
+        .algorithm-box {
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: var(--background-color);
+            border-radius: 95px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .algorithm-select {
+            padding: 8px;
+            border: none;
+            border-radius: 5px;
+            background-color: var(--background-color);
+            color: var(--secondary-color);
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background-color: var(--secondary-color);
+            transition: 0.3s;
+            z-index: 1000;
+            padding-top: 60px;
+        }
+
+        .sidebar.open {
+            left: 0;
+        }
+
+        .sidebar-toggle {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .sidebar a {
+            display: block;
+            color: white;
+            padding: 16px;
+            text-decoration: none;
+            font-size: 18px;
+        }
+
+        .sidebar a:hover {
+            background-color: var(--primary-color);
+        }
+
+        .container.sidebar-open {
+            margin-left: 250px;
+        }
+
+        @media (min-width: 768px) {
+            .content-wrapper {
+                flex-direction: row;
+            }
+
+            .left-side {
+                flex: 1.2;
+                padding-right: 30px;
+            }
+
+            .right-side {
+                flex: 1;
+            }
+
+            .scene {
+                height: 450px;
+            }
+
+            .panel {
+                width: 281px;
+                height: 14px;
+                top: 222px;
+            }
+
+            .support {
+                height: 145px;
+                bottom: 70px;
+            }
+
+            .base {
+                width: 140px;
+                height: 35px;
+                bottom: 40px;
+            }
+
+            .ground {
+                height: 60px;
+            }
+
+            .sun {
+                width: 100px;
+                height: 100px;
+                top: 30px;
+            }
+
+            .cloud1 {
+                width: 180px;
+                height: 60px;
+                top: 30px;
+                left: -180px;
+            }
+            
+
+            .cloud2 {
+                width: 140px;
+                height: 50px;
+                top: 100px;
+                left: -140px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .scene {
+                height: 250px;
+            }
+
+            .panel {
+                width: 150px;
+                height: 8px;
+                top: 118px;
+            }
+
+            .support {
+                height: 80px;
+                bottom: 40px;
+            }
+
+            .base {
+                width: 80px;
+                height: 20px;
+                bottom: 25px;
+            }
+
+            .ground {
+                height: 30px;
+            }
+
+            .sun {
+                width: 40px;
+                height: 40px;
+                top: 15px;
+            }
+            button1 {
+               margin-left: 6pc;
+            }
+            .cloud1, .cloud2 {
+                width: 80px;
+                height: 30px;
+            }
+
+            .location-box, .algorithm-box {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .sidebar {
+                width: 200px;
+                left: -200px;
+            }
+
+            .container.sidebar-open {
+                margin-left: 200px;
+            }
+
+            .control-group {
+                flex: 1 1 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+    <div class="sidebar" id="sidebar">
+        <a href="javascript:void(0);" onclick="refreshPage()">Home</a>
+        <a href="about.html">About Us</a>
+    </div>
+
+    <div class="container" id="container">
+        <div class="location-box">
+            <span class="location-text">🌏Location: Assam Engineering College, Guwahati</span>
+            <a href="https://www.google.com/maps/search/?api=1&query=Assam+Engineering+College+Guwahati" target="_blank" class="location-link">View on Map</a>
+        </div>
+
+        <div class="content-wrapper">
+            <div class="left-side">
+                <h1>SolTrack</h1>
+                <div class="scene">
+                    <div class="sun"></div>
+                    <div class="cloud cloud1"></div>
+                    <div class="cloud cloud2"></div>
+                    <div class="panel" id="panel">
+                        <div class="angle-box" id="angleBox">0°</div>
+                    </div>
+                    <div class="support"></div>
+                    <div class="base"></div>
+                    <div class="ground"></div>
+                    <div class="time-display" id="timeDisplay">6:00 AM</div>
+                </div>
+            </div>
+            <div class="right-side">
+                <div class="algorithm-box">
+                    <span>Select Algorithm:</span>
+                    <select id="algorithm" class="algorithm-select">
+                        <option value="ANN">ANN</option>
+                        <option value="RandomForest">Random Forest</option>
+                        <option value="RNN">RNN</option>
+                    </select>
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="month">Month:</label>
+                        <input type="number" id="month" min="1" max="12" value="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="day">Day:</label>
+                        <input type="number" id="day" min="1" max="31" value="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="hour">Hour: <span id="hourValue" class="value-display">1</span></label>
+                        <input type="range" id="hour" min="1" max="12" value="1" step="1">
+                    </div>
+                    <div class="control-group">
+                        <label for="temperature">Temperature: <span id="temperatureValue" class="value-display">20°C</span></label>
+                        <input type="range" id="temperature" min="-20" max="50" value="20" step="0.1">
+                    </div>
+                    <div class="control-group">
+                        <label for="humidity">Humidity: <span id="humidityValue" class="value-display">86.4%</span></label>
+                        <input type="range" id="humidity" min="0" max="100" value="86.4" step="0.1">
+                    </div>
+                    <div class="control-group">
+                        <label for="ghi">GHI: <span id="ghiValue" class="value-display">958.8 W/m²</span></label>
+                        <input type="range" id="ghi" min="0" max="1200" value="958.8" step="0.1">
+                    </div>
+                    <button1 onclick="tiltPanel()">Optimal Tilt</button1>
+                </div>
+            </div>
+        </div>
+    </div>
+ <script>
+    function updateValue(inputId, displayId, unit = '') {
+        const input = document.getElementById(inputId);
+        const display = document.getElementById(displayId);
+        display.textContent = input.value + unit;
+        input.oninput = () => {
+            display.textContent = input.value + unit;
+            if (inputId === 'hour') {
+                updateTimeDisplay(input.value);
+                updateSunPosition(input.value);
+            }
+        };
+    }
+
+    updateValue('hour', 'hourValue');
+    updateValue('temperature', 'temperatureValue', '°C');
+    updateValue('humidity', 'humidityValue', '%');
+    updateValue('ghi', 'ghiValue', ' W/m²');
+
+    function updateSunPosition(hour) {
+        const sun = document.querySelector('.sun');
+        const sceneWidth = document.querySelector('.scene').offsetWidth;
+        const sunWidth = sun.offsetWidth;
+        const maxPosition = sceneWidth - sunWidth;
+        if (hour >= 1 && hour <= 12) {
+            sun.style.left = `${maxPosition - ((hour - 1) * (maxPosition / 11))}px`;
+        }
+    }
+
+    function updateTimeDisplay(hour) {
+        const timeDisplay = document.getElementById('timeDisplay');
+        const adjustedHour = parseInt(hour) + 5; // Add 5 to start from 6 AM
+        const period = adjustedHour < 12 ? 'AM' : 'PM';
+        const displayHour = adjustedHour > 12 ? adjustedHour - 12 : adjustedHour;
+        timeDisplay.textContent = `${displayHour}:00 ${period}`;
+    }
+
+    document.getElementById('hour').addEventListener('input', (event) => {
+        const hour = event.target.value;
+        document.getElementById('hourValue').textContent = hour;
+        updateSunPosition(hour);
+        updateTimeDisplay(hour);
+    });
+
+    // Initialize time display
+    updateTimeDisplay(1);
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const container = document.getElementById('container');
+        sidebar.classList.toggle('open');
+        container.classList.toggle('sidebar-open');
+    }
+
+    async function tiltPanel() {
+        const month = document.getElementById('month').value;
+        const day = document.getElementById('day').value;
+        const hour = document.getElementById('hour').value;
+        const temperature = document.getElementById('temperature').value;
+        const humidity = document.getElementById('humidity').value;
+        const ghi = document.getElementById('ghi').value;
+        const algorithm = document.getElementById('algorithm').value;
+
+        try {
+            const response = await fetch(`/predict?month=${month}&day=${day}&hour=${hour}&temperature=${temperature}&humidity=${humidity}&ghi=${ghi}&algorithm=${algorithm}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            console.log('Response data:', data);
+
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            const angle = data.angle;
+            const panel = document.getElementById('panel');
+            const angleBox = document.getElementById('angleBox');
+
+            if (angle !== undefined) {
+                panel.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+                angleBox.textContent = `${angle.toFixed(2)}°`;
+            } else {
+                alert('Error: Invalid angle');
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            alert('Error fetching data from the server');
+        }
+    }
+
+    function refreshPage() {
+        location.reload();
+    }
+
+    // Initialize sun position and time display
+    updateSunPosition(1);
+    updateTimeDisplay(1);
+</script>
+</body>
+</html>
