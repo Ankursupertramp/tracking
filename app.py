@@ -4,19 +4,27 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 import os
+import logging
 
 app = Flask(__name__, static_folder='.')
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 
 def mse(y_true, y_pred):
     return tf.keras.losses.MeanSquaredError()(y_true, y_pred)
 
 # Load models at startup
-print("Loading models...")
-ann_model = tf.keras.models.load_model('ANN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
-rf_model = joblib.load('random_forest_model.pkl')
-scaler = joblib.load('scaler.pkl')
-rnn_model = tf.keras.models.load_model('RNN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
-print("Models loaded successfully.")
+app.logger.info("Loading models...")
+try:
+    ann_model = tf.keras.models.load_model('ANN_model.h5', custom_objects={'mse': mse})
+    rf_model = joblib.load('random_forest_model.pkl')
+    scaler = joblib.load('scaler.pkl')
+    rnn_model = tf.keras.models.load_model('RNN_model.h5', custom_objects={'mse': mse})
+    app.logger.info("Models loaded successfully.")
+except Exception as e:
+    app.logger.error(f"Error loading models: {e}")
+    raise
 
 def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
     try:
@@ -28,9 +36,11 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
             'Relative Humidity': [humidity],
             'GHI': [ghi]
         })
-
         input_scaled = scaler.transform(input_data)
-
+        
+        app.logger.debug(f"Input data: {input_data}")
+        app.logger.debug(f"Scaled input: {input_scaled}")
+        
         if isinstance(model, tf.keras.Model):
             if model == rnn_model:
                 input_sequence = np.repeat(input_scaled, 24, axis=0)
@@ -40,13 +50,16 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
                 predicted_tilt_angle = model.predict(input_scaled)[0][0]
         else:  # Random Forest model
             predicted_tilt_angle = model.predict(input_scaled)[0]
-
+        
+        app.logger.debug(f"Raw predicted angle: {predicted_tilt_angle}")
+        
+        # Adjust angle based on hour
         if 7 <= hour < 13:
             predicted_tilt_angle = -predicted_tilt_angle
-
+        
         return float(predicted_tilt_angle)
     except Exception as e:
-        print(f"Error in prediction: {e}")
+        app.logger.error(f"Error in prediction: {e}")
         return None
 
 @app.route('/')
@@ -56,17 +69,16 @@ def home():
 @app.route('/predict', methods=['GET'])
 def predict():
     try:
-        month = request.args.get('month', type=int)
-        day = request.args.get('day', type=int)
-        hour = request.args.get('hour', type=int)
-        temperature = request.args.get('temperature', type=float)
-        humidity = request.args.get('humidity', type=float)
-        ghi = request.args.get('ghi', type=float)
-        algorithm = request.args.get('algorithm', type=str, default='ANN')
-
-        if None in (month, day, hour, temperature, humidity, ghi):
-            return jsonify({'error': 'Missing or invalid query parameters'}), 400
-
+        month = int(request.args.get('month'))
+        day = int(request.args.get('day'))
+        hour = int(request.args.get('hour'))
+        temperature = float(request.args.get('temperature'))
+        humidity = float(request.args.get('humidity'))
+        ghi = float(request.args.get('ghi'))
+        algorithm = request.args.get('algorithm', 'ANN')
+        
+        app.logger.info(f"Received request: month={month}, day={day}, hour={hour}, temperature={temperature}, humidity={humidity}, ghi={ghi}, algorithm={algorithm}")
+        
         if algorithm == 'ANN':
             model = ann_model
         elif algorithm == 'RandomForest':
@@ -75,16 +87,16 @@ def predict():
             model = rnn_model
         else:
             return jsonify({'error': 'Invalid algorithm selection'}), 400
-
+        
         tilt_angle = predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi)
-
+        
         if tilt_angle is None:
             return jsonify({'error': 'Error in prediction'}), 500
-
+        
+        app.logger.info(f"Predicted tilt angle: {tilt_angle}")
         return jsonify({'angle': tilt_angle})
-
     except Exception as e:
-        print(f"Error in /predict endpoint: {e}")
+        app.logger.error(f"Error in /predict endpoint: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
