@@ -4,18 +4,33 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 import os
+from werkzeug.contrib.cache import SimpleCache
+
+# Initialize cache
+cache = SimpleCache()
 
 # Load the trained models and scaler
 def mse(y_true, y_pred):
     return tf.keras.losses.MeanSquaredError()(y_true, y_pred)
 
-# Update these paths to match your Render file structure
-ann_model = tf.keras.models.load_model('ANN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
-rf_model = joblib.load('random_forest_model.pkl')
-scaler = joblib.load('scaler.pkl')
-rnn_model = tf.keras.models.load_model('RNN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
+# Load models only when needed
+ann_model = None
+rf_model = None
+scaler = None
+rnn_model = None
 
 app = Flask(__name__, static_folder='.')
+
+def load_models():
+    global ann_model, rf_model, scaler, rnn_model
+    if ann_model is None:
+        ann_model = tf.keras.models.load_model('ANN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
+    if rf_model is None:
+        rf_model = joblib.load('random_forest_model.pkl')
+    if scaler is None:
+        scaler = joblib.load('scaler.pkl')
+    if rnn_model is None:
+        rnn_model = tf.keras.models.load_model('RNN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
 
 def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
     try:
@@ -55,6 +70,9 @@ def home():
 @app.route('/predict', methods=['GET'])
 def predict():
     try:
+        # Load models if not already loaded
+        load_models()
+
         month = request.args.get('month', type=int)
         day = request.args.get('day', type=int)
         hour = request.args.get('hour', type=int)
@@ -65,6 +83,12 @@ def predict():
 
         if None in (month, day, hour, temperature, humidity, ghi):
             return jsonify({'error': 'Missing or invalid query parameters'}), 400
+
+        # Create a cache key
+        cache_key = f"{algorithm}_{month}_{day}_{hour}_{temperature}_{humidity}_{ghi}"
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            return jsonify({'angle': cached_result})
 
         if algorithm == 'ANN':
             model = ann_model
@@ -79,6 +103,9 @@ def predict():
 
         if tilt_angle is None:
             return jsonify({'error': 'Error in prediction'}), 500
+
+        # Cache the result
+        cache.set(cache_key, tilt_angle, timeout=3600)  # Cache for 1 hour
 
         return jsonify({'angle': tilt_angle})
 
