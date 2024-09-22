@@ -41,17 +41,25 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
         app.logger.debug(f"Input data: {input_data}")
         app.logger.debug(f"Scaled input: {input_scaled}")
         
+        predicted_tilt_angle = None
+        
         if isinstance(model, tf.keras.Model):
+            app.logger.debug("Model is a TensorFlow Keras Model.")
             if model == rnn_model:
+                app.logger.debug("Using RNN model for prediction.")
                 input_sequence = np.repeat(input_scaled, 24, axis=0)
                 input_sequence = np.expand_dims(input_sequence, axis=0)
+                app.logger.debug(f"Input sequence shape for RNN: {input_sequence.shape}")
                 predicted_tilt_angle = model.predict(input_sequence)[0][0]
             else:  # ANN model
+                app.logger.debug("Using ANN model for prediction.")
+                app.logger.debug(f"Input shape for ANN: {input_scaled.shape}")
                 predicted_tilt_angle = model.predict(input_scaled)[0][0]
+                app.logger.debug(f"Predicted tilt angle (ANN): {predicted_tilt_angle}")
         else:  # Random Forest model
+            app.logger.debug("Model is a Random Forest Model.")
             predicted_tilt_angle = model.predict(input_scaled)[0]
-        
-        app.logger.debug(f"Raw predicted angle: {predicted_tilt_angle}")
+            app.logger.debug(f"Predicted tilt angle (RF): {predicted_tilt_angle}")
         
         # Adjust angle based on hour
         if 7 <= hour < 13:
@@ -59,8 +67,9 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
         
         return float(predicted_tilt_angle)
     except Exception as e:
-        app.logger.error(f"Error in prediction: {e}")
+        app.logger.error(f"Error in prediction: {e}", exc_info=True)
         return None
+
 
 @app.route('/')
 def home():
