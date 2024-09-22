@@ -1,37 +1,22 @@
 from flask import Flask, jsonify, request, send_from_directory
-from flask_caching import Cache
 import joblib
 import tensorflow as tf
 import pandas as pd
 import numpy as np
 import os
 
-# Initialize Flask app
 app = Flask(__name__, static_folder='.')
 
-# Configure caching
-cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
-
-# Load the trained models and scaler
 def mse(y_true, y_pred):
     return tf.keras.losses.MeanSquaredError()(y_true, y_pred)
 
-# Load models only when needed
-ann_model = None
-rf_model = None
-scaler = None
-rnn_model = None
-
-def load_models():
-    global ann_model, rf_model, scaler, rnn_model
-    if ann_model is None:
-        ann_model = tf.keras.models.load_model('ANN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
-    if rf_model is None:
-        rf_model = joblib.load('random_forest_model.pkl')
-    if scaler is None:
-        scaler = joblib.load('scaler.pkl')
-    if rnn_model is None:
-        rnn_model = tf.keras.models.load_model('RNN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
+# Load models at startup
+print("Loading models...")
+ann_model = tf.keras.models.load_model('ANN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
+rf_model = joblib.load('random_forest_model.pkl')
+scaler = joblib.load('scaler.pkl')
+rnn_model = tf.keras.models.load_model('RNN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
+print("Models loaded successfully.")
 
 def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
     try:
@@ -69,12 +54,8 @@ def home():
     return send_from_directory('.', 'index.html')
 
 @app.route('/predict', methods=['GET'])
-@cache.cached(timeout=3600, query_string=True)  # Cache for 1 hour, consider query parameters
 def predict():
     try:
-        # Load models if not already loaded
-        load_models()
-
         month = request.args.get('month', type=int)
         day = request.args.get('day', type=int)
         hour = request.args.get('hour', type=int)
