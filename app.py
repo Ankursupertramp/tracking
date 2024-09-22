@@ -70,7 +70,9 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
     except Exception as e:
         app.logger.error(f"Error in prediction: {e}", exc_info=True)
         raise  # Re-raise the exception to be caught in the /predict route
-
+@app.route('/')
+def home():
+    return send_from_directory('.', 'index.html')
 @app.route('/predict', methods=['GET'])
 def predict():
     try:
