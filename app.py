@@ -3,22 +3,22 @@ import joblib
 import tensorflow as tf
 import pandas as pd
 import numpy as np
+import os
 
 # Load the trained models and scaler
-
 def mse(y_true, y_pred):
     return tf.keras.losses.MeanSquaredError()(y_true, y_pred)
 
+# Update these paths to match your Render file structure
 ann_model = tf.keras.models.load_model('ANN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
 rf_model = joblib.load('random_forest_model.pkl')
 scaler = joblib.load('scaler.pkl')
 rnn_model = tf.keras.models.load_model('RNN_model.h5', custom_objects={'mse': tf.keras.losses.MeanSquaredError})
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.')
 
 def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
     try:
-        # Create a DataFrame with the input values
         input_data = pd.DataFrame({
             'Month': [month],
             'Day': [day],
@@ -28,14 +28,10 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
             'GHI': [ghi]
         })
 
-        # Scale the input data
         input_scaled = scaler.transform(input_data)
 
-        # Predict the tilt angle using the selected model
         if isinstance(model, tf.keras.Model):
             if model == rnn_model:
-                # For RNN, we need to reshape the input to (1, sequence_length, features)
-                # Assuming sequence_length of 24, repeat the input 24 times
                 input_sequence = np.repeat(input_scaled, 24, axis=0)
                 input_sequence = np.expand_dims(input_sequence, axis=0)
                 predicted_tilt_angle = model.predict(input_sequence)[0][0]
@@ -44,7 +40,6 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
         else:  # Random Forest model
             predicted_tilt_angle = model.predict(input_scaled)[0]
 
-        # Adjust angle based on the hour
         if 7 <= hour < 13:
             predicted_tilt_angle = -predicted_tilt_angle
 
@@ -55,12 +50,11 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
 
 @app.route('/')
 def home():
-    return send_from_directory('', 'index.html')
+    return send_from_directory('.', 'index.html')
 
 @app.route('/predict', methods=['GET'])
 def predict():
     try:
-        # Retrieve query parameters with default values if not provided
         month = request.args.get('month', type=int)
         day = request.args.get('day', type=int)
         hour = request.args.get('hour', type=int)
@@ -69,7 +63,6 @@ def predict():
         ghi = request.args.get('ghi', type=float)
         algorithm = request.args.get('algorithm', type=str, default='ANN')
 
-        # Check for missing parameters
         if None in (month, day, hour, temperature, humidity, ghi):
             return jsonify({'error': 'Missing or invalid query parameters'}), 400
 
@@ -94,4 +87,5 @@ def predict():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    port = int(os.environ.get('PORT', 8000))
+    app.run(host="0.0.0.0", port=port)
