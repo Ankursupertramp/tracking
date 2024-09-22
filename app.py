@@ -1,13 +1,16 @@
 from flask import Flask, jsonify, request, send_from_directory
+from flask_caching import Cache
 import joblib
 import tensorflow as tf
 import pandas as pd
 import numpy as np
 import os
-from werkzeug.contrib.cache import SimpleCache
 
-# Initialize cache
-cache = SimpleCache()
+# Initialize Flask app
+app = Flask(__name__, static_folder='.')
+
+# Configure caching
+cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache'})
 
 # Load the trained models and scaler
 def mse(y_true, y_pred):
@@ -18,8 +21,6 @@ ann_model = None
 rf_model = None
 scaler = None
 rnn_model = None
-
-app = Flask(__name__, static_folder='.')
 
 def load_models():
     global ann_model, rf_model, scaler, rnn_model
@@ -68,6 +69,7 @@ def home():
     return send_from_directory('.', 'index.html')
 
 @app.route('/predict', methods=['GET'])
+@cache.cached(timeout=3600, query_string=True)  # Cache for 1 hour, consider query parameters
 def predict():
     try:
         # Load models if not already loaded
@@ -84,12 +86,6 @@ def predict():
         if None in (month, day, hour, temperature, humidity, ghi):
             return jsonify({'error': 'Missing or invalid query parameters'}), 400
 
-        # Create a cache key
-        cache_key = f"{algorithm}_{month}_{day}_{hour}_{temperature}_{humidity}_{ghi}"
-        cached_result = cache.get(cache_key)
-        if cached_result:
-            return jsonify({'angle': cached_result})
-
         if algorithm == 'ANN':
             model = ann_model
         elif algorithm == 'RandomForest':
@@ -103,9 +99,6 @@ def predict():
 
         if tilt_angle is None:
             return jsonify({'error': 'Error in prediction'}), 500
-
-        # Cache the result
-        cache.set(cache_key, tilt_angle, timeout=3600)  # Cache for 1 hour
 
         return jsonify({'angle': tilt_angle})
 
