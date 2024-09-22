@@ -51,6 +51,7 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
                 input_sequence = np.expand_dims(input_sequence, axis=0)
                 app.logger.debug(f"Input sequence shape for RNN: {input_sequence.shape}")
                 predicted_tilt_angle = model.predict(input_sequence, batch_size=1)[0][0]
+                app.logger.debug(f"Predicted tilt angle (RNN): {predicted_tilt_angle}")
             else:  # ANN model
                 app.logger.debug("Using ANN model for prediction.")
                 app.logger.debug(f"Input shape for ANN: {input_scaled.shape}")
@@ -68,12 +69,7 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
         return float(predicted_tilt_angle)
     except Exception as e:
         app.logger.error(f"Error in prediction: {e}", exc_info=True)
-        return None
-
-
-@app.route('/')
-def home():
-    return send_from_directory('.', 'index.html')
+        raise  # Re-raise the exception to be caught in the /predict route
 
 @app.route('/predict', methods=['GET'])
 def predict():
@@ -98,9 +94,6 @@ def predict():
             return jsonify({'error': 'Invalid algorithm selection'}), 400
         
         tilt_angle = predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi)
-        
-        if tilt_angle is None:
-            return jsonify({'error': 'Error in prediction'}), 500
         
         app.logger.info(f"Predicted tilt angle: {tilt_angle}")
         return jsonify({'angle': tilt_angle})
