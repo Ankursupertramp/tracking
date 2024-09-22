@@ -50,11 +50,11 @@ def predict_tilt_angle(model, month, day, hour, temperature, humidity, ghi):
                 input_sequence = np.repeat(input_scaled, 24, axis=0)
                 input_sequence = np.expand_dims(input_sequence, axis=0)
                 app.logger.debug(f"Input sequence shape for RNN: {input_sequence.shape}")
-                predicted_tilt_angle = model.predict(input_sequence)[0][0]
+                predicted_tilt_angle = model.predict(input_sequence, batch_size=1)[0][0]
             else:  # ANN model
                 app.logger.debug("Using ANN model for prediction.")
                 app.logger.debug(f"Input shape for ANN: {input_scaled.shape}")
-                predicted_tilt_angle = model.predict(input_scaled)[0][0]
+                predicted_tilt_angle = model.predict(input_scaled, batch_size=1)[0][0]
                 app.logger.debug(f"Predicted tilt angle (ANN): {predicted_tilt_angle}")
         else:  # Random Forest model
             app.logger.debug("Model is a Random Forest Model.")
