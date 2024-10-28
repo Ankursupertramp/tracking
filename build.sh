@@ -1,8 +1,17 @@
 #!/bin/bash
+
+# Ensure pyenv is installed
 curl -L https://raw.githubusercontent.com/pyenv/pyenv-installer/master/bin/pyenv-installer | bash
+
+# Set up pyenv environment
 export PATH="$HOME/.pyenv/bin:$PATH"
 eval "$(pyenv init -)"
-pyenv install 3.11.7
+eval "$(pyenv virtualenv-init -)"
+
+# Install and use Python 3.11.7
+pyenv install -s 3.11.7
 pyenv global 3.11.7
-python -m pip install --upgrade pip
+
+# Upgrade pip and install dependencies
+python -m pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
