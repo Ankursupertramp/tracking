@@ -7,7 +7,7 @@
       "config": {
         "maxLambdaSize": "15mb",
         "runtime": "python3.11",
-        "buildCommand": "pip install --upgrade pip && pip install -r requirements.txt"
+        "buildCommand": "chmod +x build.sh && ./build.sh"
       }
     }
   ],
@@ -19,6 +19,8 @@
   ],
   "env": {
     "PYTHONPATH": ".",
-    "PIP_TARGET": ".pip"
+    "PIP_TARGET": ".pip",
+    "PYTHONUNBUFFERED": "1",
+    "VERCEL_FORCE_NO_BUILD_CACHE": "1"
   }
 }
