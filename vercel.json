@@ -6,7 +6,6 @@
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "15mb",
-        "PYTHON_VERSION": "3.11.5",
         "buildCommand": "chmod +x build.sh && ./build.sh"
       }
     }
@@ -18,9 +17,15 @@
     }
   ],
   "env": {
+    "PYTHON_VERSION": "3.11.5",       // Specify the Python version to use
     "PYTHONPATH": ".",
     "PIP_TARGET": ".pip",
     "PYTHONUNBUFFERED": "1",
     "VERCEL_FORCE_NO_BUILD_CACHE": "1"
+  },
+  "hooks": {
+    "build": {
+      "command": "./build.sh" // Specify your build command directly
+    }
   }
 }
