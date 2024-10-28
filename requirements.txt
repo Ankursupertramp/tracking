@@ -5,4 +5,5 @@ pandas==2.1.0
 scikit-learn==1.3.1
 tensorflow==2.14.0
 joblib==1.3.2
-setuptools==68.2.2
+setuptools==67.7.2  # or the version compatible with your app
+
