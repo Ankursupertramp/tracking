@@ -5,8 +5,7 @@ pandas==2.0.3
 numpy==1.24.3
 gunicorn==23.0.0
 scikit-learn==1.3.1
-setuptools==68.2.2  # Updated version
+setuptools==68.2.2
 wheel==0.41.2
-distutils-extra==2.39  # Added explicitly
-python-distutils-extra==2.39  # Added as backup
-
+distutils-extra==2.39
+python-distutils-extra==2.39
